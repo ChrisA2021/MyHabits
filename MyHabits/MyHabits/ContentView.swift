@@ -29,6 +29,16 @@ struct Habit: Identifiable, Codable {
 struct ContentView: View {
     @State private var habits: [Habit] = []
     @State private var newHabit = ""
+    @State private var alertType: AlertType?
+    
+    enum AlertType: Identifiable {
+        case increment
+        case alreadyIncremented
+        
+        var id: Int {
+            hashValue
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -52,7 +62,6 @@ struct ContentView: View {
                             .disabled(!canIncrementStreak(for: habit))
                         }
                     }
-                    .onDelete(perform: deleteHabit)
                 }
                 
                 Section(header: Text("Add New Habit")) {
@@ -72,6 +81,22 @@ struct ContentView: View {
             .toolbar {
                 EditButton()
             }
+            .alert(item: $alertType) { alertType in
+                switch alertType {
+                case .increment:
+                    return Alert(
+                        title: Text("Good job today!"),
+                        message: Text("Check back in tomorrow."),
+                        dismissButton: .default(Text("OK"))
+                    )
+                case .alreadyIncremented:
+                    return Alert(
+                        title: Text("Streak Already Updated"),
+                        message: Text("You can only increment the streak once per day."),
+                        dismissButton: .default(Text("OK"))
+                    )
+                }
+            }
         }
         .onAppear(perform: loadHabits)
     }
@@ -84,15 +109,15 @@ struct ContentView: View {
         newHabit = ""
     }
     
-    func deleteHabit(at offsets: IndexSet) {
-        habits.remove(atOffsets: offsets)
-        saveHabits()
-    }
-    
     func incrementStreak(for habit: Habit) {
         if let index = habits.firstIndex(where: { $0.id == habit.id }) {
-            habits[index].incrementStreak()
-            saveHabits()
+            if canIncrementStreak(for: habit) {
+                habits[index].incrementStreak()
+                saveHabits()
+                alertType = .increment
+            } else {
+                alertType = .alreadyIncremented
+            }
         }
     }
     
@@ -122,5 +147,3 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
-
-
