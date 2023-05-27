@@ -7,16 +7,50 @@
 
 import SwiftUI
 
+struct Habit: Identifiable, Codable {
+    var id = UUID()
+    let name: String
+    var streak: Int
+    var lastUpdated: Date?
+    
+    mutating func incrementStreak() {
+        let currentDate = Date()
+        
+        if let lastUpdated = lastUpdated, Calendar.current.isDate(lastUpdated, inSameDayAs: currentDate) {
+            // Already updated today
+            return
+        }
+        
+        streak += 1
+        lastUpdated = currentDate
+    }
+}
+
 struct ContentView: View {
-    @State private var habits: [String] = []
+    @State private var habits: [Habit] = []
     @State private var newHabit = ""
     
     var body: some View {
         NavigationView {
             List {
                 Section(header: Text("My Habits")) {
-                    ForEach(habits, id: \.self) { habit in
-                        Text(habit)
+                    ForEach(habits) { habit in
+                        HStack {
+                            Text(habit.name)
+                            Spacer()
+                            Text("Streak: \(habit.streak)")
+                            Button(action: {
+                                incrementStreak(for: habit)
+                            }) {
+                                Text("Increment")
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 4)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(8)
+                            }
+                            .disabled(!canIncrementStreak(for: habit))
+                        }
                     }
                     .onDelete(perform: deleteHabit)
                 }
@@ -44,7 +78,8 @@ struct ContentView: View {
     
     func addHabit() {
         guard !newHabit.isEmpty else { return }
-        habits.append(newHabit)
+        let habit = Habit(name: newHabit, streak: 0, lastUpdated: nil)
+        habits.append(habit)
         saveHabits()
         newHabit = ""
     }
@@ -54,14 +89,31 @@ struct ContentView: View {
         saveHabits()
     }
     
+    func incrementStreak(for habit: Habit) {
+        if let index = habits.firstIndex(where: { $0.id == habit.id }) {
+            habits[index].incrementStreak()
+            saveHabits()
+        }
+    }
+    
+    func canIncrementStreak(for habit: Habit) -> Bool {
+        if let lastUpdated = habit.lastUpdated, Calendar.current.isDateInToday(lastUpdated) {
+            return false
+        }
+        return true
+    }
+    
     func loadHabits() {
-        if let savedHabits = UserDefaults.standard.stringArray(forKey: "SavedHabits") {
+        if let savedHabitsData = UserDefaults.standard.data(forKey: "SavedHabits"),
+           let savedHabits = try? JSONDecoder().decode([Habit].self, from: savedHabitsData) {
             habits = savedHabits
         }
     }
     
     func saveHabits() {
-        UserDefaults.standard.set(habits, forKey: "SavedHabits")
+        if let encodedData = try? JSONEncoder().encode(habits) {
+            UserDefaults.standard.set(encodedData, forKey: "SavedHabits")
+        }
     }
 }
 
@@ -70,3 +122,5 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
+
+
