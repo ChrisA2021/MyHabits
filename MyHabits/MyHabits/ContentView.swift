@@ -8,14 +8,60 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var habits: [String] = []
+    @State private var newHabit = ""
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundColor(.accentColor)
-            Text("Hello, world!")
+        NavigationView {
+            List {
+                Section(header: Text("My Habits")) {
+                    ForEach(habits, id: \.self) { habit in
+                        Text(habit)
+                    }
+                    .onDelete(perform: deleteHabit)
+                }
+                
+                Section(header: Text("Add New Habit")) {
+                    HStack {
+                        TextField("Enter habit", text: $newHabit)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Button(action: addHabit) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+            .listStyle(InsetGroupedListStyle())
+            .navigationTitle("MyHabits")
+            .toolbar {
+                EditButton()
+            }
         }
-        .padding()
+        .onAppear(perform: loadHabits)
+    }
+    
+    func addHabit() {
+        guard !newHabit.isEmpty else { return }
+        habits.append(newHabit)
+        saveHabits()
+        newHabit = ""
+    }
+    
+    func deleteHabit(at offsets: IndexSet) {
+        habits.remove(atOffsets: offsets)
+        saveHabits()
+    }
+    
+    func loadHabits() {
+        if let savedHabits = UserDefaults.standard.stringArray(forKey: "SavedHabits") {
+            habits = savedHabits
+        }
+    }
+    
+    func saveHabits() {
+        UserDefaults.standard.set(habits, forKey: "SavedHabits")
     }
 }
 
