@@ -38,11 +38,11 @@ struct ContentView: View {
                         HStack {
                             Text(habit.name)
                             Spacer()
-                            Text("Streak: \(habit.streak)")
+                            Text("🔥 \(habit.streak)")
                             Button(action: {
                                 incrementStreak(for: habit)
                             }) {
-                                Text("Increment")
+                                Text("Complete")
                                     .foregroundColor(.blue)
                                     .padding(.horizontal)
                                     .padding(.vertical, 4)
